@@ -8,7 +8,7 @@
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
   })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-  ga('create', 'UA-2231125-6', 'auto');
+  ga('create', 'UA-123456-7', 'auto');
   ga('send', 'pageview');
 </script>
 
@@ -41,11 +41,20 @@ function start()
     formatField('to')
     formatField('fOp')
     formatField('fNum')
+    // formatField('secbookRef')
+    formatField('secfrom')
+    formatField('secto')
+    formatField('secfOp')
+    formatField('secfNum')
     readDate()
     formatClass()
     formatSeat()
     formatSeqNum()
     format()
+    secreadDate()
+    formatsecClass()
+    formatsecSeat()
+    formatsecSeqNum()
 }
 
 function errclear() {
@@ -91,10 +100,16 @@ function update(fromRaw)
 }
 
 function format() {
-    textIn = "M1" + fields.name + "E" + fields.bookRef + fields.from + fields.to 
+    if (secfromEd.value != "") // second flight not empty
+        textIn = "M2" + fields.name + "E" + fields.bookRef + fields.from + fields.to 
+                + fields.fOp + fields.fNum + fields.date + fields.cls + fields.seat + fields.seqNum
+                + fields.secfrom + fields.secto + fields.secfOp + fields.secfNum + fields.secdate + fields.seccls + fields.secseat + fields.secseqNum
+                + "1" + "00"
+                // 1 passenger status, 00 - hex length of following data
+    else 
+        textIn = "M1" + fields.name + "E" + fields.bookRef + fields.from + fields.to 
              + fields.fOp + fields.fNum + fields.date + fields.cls + fields.seat + fields.seqNum
              + "1" + "00"
-             // 1 passenger status, 00 - hex length of following data
     update()
 }
 function upPadRight(s, n) {
@@ -129,7 +144,11 @@ var fldDef = {
     'from':    { pad: 3, desc:"From"},
     'to':      { pad: 3, desc:"To"},
     'fOp':     { pad: 3, desc:"Flight Operator"},
-    'fNum':    { pad: 5, desc:"Flight Number"}
+    'fNum':    { pad: 5, desc:"Flight Number"},
+    'secfrom':    { pad: 3, desc:"Second From"},
+    'secto':      { pad: 3, desc:"Second To"},
+    'secfOp':     { pad: 3, desc:"Second Flight Operator"},
+    'secfNum':    { pad: 5, desc:"Second Flight Number"}
 }
 
 function formatField(name, doRun) {
@@ -145,6 +164,11 @@ function formatField(name, doRun) {
 
 function formatDay(doRun) {
     fields.date = padLeft(dayOfYearEd.value, 3)
+    if (doRun)
+        format()
+}
+function formatsecDay(doRun) {
+    fields.secdate = padLeft(secdayOfYearEd.value, 3)
     if (doRun)
         format()
 }
@@ -173,8 +197,33 @@ function readDate(toRun) {
     dayOfYearEd.value = dayOfYear(yr, mon, mday)
     formatDay(toRun)
 }
+
+function secdayOfYear(yr, mon, mday)
+{
+    var now = new Date(yr, mon, mday, 1, 0, 0)
+    var start = new Date(yr, 0, 1, 0, 0);
+    var diff = now - start;
+    var oneDay = 1000 * 60 * 60 * 24;
+    var day = Math.floor(diff / oneDay) + 1; // start at 1
+    return day
+}
+
+function secreadDate(toRun) {
+    var dl = secdateEd.value.split('-')
+    var mday = parseInt(dl[2])
+    var mon = parseInt(dl[1]) - 1  // the range of the input is [1-12]
+    var yr = parseInt(dl[0])
+    
+    secdayOfYearEd.value = secdayOfYear(yr, mon, mday)
+    formatsecDay(toRun)
+}
 function formatClass(doRun) {
     fields.cls = classSel.value
+    if (doRun)
+        format()
+}
+function formatsecClass(doRun) {
+    fields.seccls = secclassSel.value
     if (doRun)
         format()
 }
@@ -187,6 +236,15 @@ function formatSeat(doRun) {
     if (doRun)
         format()
 }
+function formatsecSeat(doRun) {
+    errclear()
+    var n = secseatNumEd.value
+    if (n.length > 4)
+        err("Seat longer than 4 chars")
+    fields.secseat = padLeft(n, 4)
+    if (doRun)
+        format()
+}
 function formatSeqNum(doRun) {
     errclear()
     var n = seqNumEd.value
@@ -195,13 +253,22 @@ function formatSeqNum(doRun) {
     fields.seqNum = upPadRight(padLeft(n, 4), 5)
     if (doRun)
         format()
-}    
+}
+function formatsecSeqNum(doRun) {
+    errclear()
+    var n = secseqNumEd.value
+    if (n.length > 4)
+        err("Seat longer than 4 chars")    
+    fields.secseqNum = upPadRight(padLeft(n, 4), 5)
+    if (doRun)
+        format()
+}  
 
 function typeUpdate() {
     if (codeTypeSel.value == "0")
         symSize.value = "11"  // size of the aztec
     else
-        symSize.value = "6"  // columns in the barcode
+        symSize.value = "7"  // columns in the barcode
     update()
 }
 
@@ -271,11 +338,11 @@ input, #classSel {
 <input id="firstNameEd" type="text" value="John" oninput="formatName(true)"><br>
 <span class="tlabel">Last Name</span><br>
 <input id="lastNameEd" type="text" value="Doe" oninput="formatName(true)"><br>
-<span class="unimpCol tlabel">Booking-Ref</span><br>
+<span class="unimpCol tlabel">Booking-Ref/Confirmation Number/E-Ticket Number</span><br>
 <input id="bookRefEd" class="unimpCol" type="text" value="XYZ123" oninput="formatField('bookRef', true)"><br>
-<span class="tlabel">From</span><br>
+<span class="tlabel">First Flight From</span><br>
 <input id="fromEd" type="text" value="ZRH" oninput="formatField('from', true)"><br>
-<span class="tlabel">To</span><br>
+<span class="tlabel">First Flight To</span><br>
 <input id="toEd" type="text" value="SFO" oninput="formatField('to', true)"><br>
 <span class="tlabel">Flight Operator</span><br>
 <input id="fOpEd" type="text" value="BA" oninput="formatField('fOp',true)"><br>
@@ -293,8 +360,30 @@ input, #classSel {
 </select><br>
 <span class="tlabel">Seat</span><br>
 <input id="seatNumEd" type="text" value="35A" oninput="formatSeat(true)"><br>
-<span class="unimpCol tlabel">Boarding Index</span><br>
+<span class="unimpCol tlabel"> Boarding Index</span><br>
 <input id="seqNumEd" class="unimpCol" type="text" value="0001" oninput="formatSeqNum(true)"><br>
+<span class="tlabel">Second Flight From</span><br>
+<input id="secfromEd" type="text" value="" oninput="formatField('secfrom', true)"><br>
+<span class="tlabel">Second Flight To</span><br>
+<input id="sectoEd" type="text" value="" oninput="formatField('secto', true)"><br>
+<span class="tlabel">Second Flight Operator</span><br>
+<input id="secfOpEd" type="text" value="" oninput="formatField('secfOp',true)"><br>
+<span class="tlabel">Second Flight Number</span><br>
+<input id="secfNumEd" type="text" value="" oninput="formatField('secfNum', true)"><br>
+<span class="tlabel">Second Flight Date</span><br>
+<input id="secdateEd" type="date" oninput="secreadDate(true)"><br>
+<span class="unimpCol tlabel">Second Flight Day in year</span><br>
+<input id="secdayOfYearEd" type="text" class="unimpCol" value="0" oninput="formatsecDay(true)"><br>
+<span class="tlabel">Second Flight Class</span><br>
+<select id="secclassSel" onchange="formatsecClass(true)">
+  <option value="F">First</option>
+  <option value="C">Business</option>
+  <option value="Y">Economy</option>
+</select><br>
+<span class="tlabel">Second Flight Seat</span><br>
+<input id="secseatNumEd" type="text" value="" oninput="formatsecSeat(true)"><br>
+<span class="unimpCol tlabel">Second Boarding Index</span><br>
+<input id="secseqNumEd" class="unimpCol" type="text" value="0001" oninput="formatsecSeqNum(true)"><br>
 </div>
 <span class="unimpCol">Raw Data:</span><br>
 <textarea id="textEdit" rows="4" cols="50" class="unimpCol" oninput="update(true)">
